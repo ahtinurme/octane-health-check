@@ -2,6 +2,10 @@
 
 All notable changes to `octane-health-check` will be documented in this file.
 
+## v2.0 - 2025-06-08
+
+Laravel 12 support (thanks https://github.com/devSviat)
+
 ## v1.1.0 - 2024-03-22
 
 Add Laravel 11 support
