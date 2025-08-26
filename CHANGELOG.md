@@ -2,12 +2,16 @@
 
 All notable changes to `octane-health-check` will be documented in this file.
 
+## v2.1.0 - 2025-08-26
+
+#3 fix: allow frankenphp; refactor code - thanks @eleftrik
+
 ## unreleased
 
 - fix `Class "Swoole\Process" not found` when using `frankenphp`
 - add `ApplicationServerEnum` to improve checks and messages
 - refactor `isApplicationServerRunning`
-- allow `setServer` method to receive a string or an `ApplicationServerEnum` instance 
+- allow `setServer` method to receive a string or an `ApplicationServerEnum` instance
 - show in messages/errors which application server is being used
 
 ## v2.0 - 2025-06-08
