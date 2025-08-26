@@ -2,14 +2,12 @@
 
 namespace Ahtinurme;
 
-use Laravel\Octane\RoadRunner\ServerProcessInspector as RoadRunnerServerProcessInspector;
-use Laravel\Octane\Swoole\ServerProcessInspector as SwooleServerProcessInspector;
 use Spatie\Health\Checks\Check;
 use Spatie\Health\Checks\Result;
 
 class OctaneCheck extends Check
 {
-    protected string $server = 'swoole';
+    protected ApplicationServerEnum $server;
 
     protected ?string $name = 'Octane';
 
@@ -18,54 +16,54 @@ class OctaneCheck extends Check
         $result = Result::make();
 
         try {
-            $server = $this->server ?: config('octane.server');
+            if (! isset($this->server)) {
+                $this->setServer(config('octane.server') ?? '');
+            }
 
-            $isRunning = match ($server) {
-                'swoole' => $this->isSwooleServerRunning(),
-                'roadrunner' => $this->isRoadRunnerServerRunning(),
-                default => $this->invalidServer($result, $server),
-            };
-        } catch (\Exception) {
-            return $result->failed('Octane does not seem to be installed correctly.');
+            $isRunning = $this->isApplicationServerRunning($this->server);
+        } catch (\Exception $exception) {
+            return $result->failed('Octane does not seem to be installed correctly: '.$exception->getMessage());
         }
 
+        $serverMessage = "Octane server (with {$this->server->description()})";
         if (! $isRunning) {
             return $result
-                ->failed('Octane server is not running')
+                ->failed("$serverMessage is not running")
                 ->shortSummary('Not running');
         }
 
         return $result
             ->ok()
-            ->shortSummary('Octane server is running');
+            ->shortSummary("$serverMessage is running");
     }
 
-    public function setServer(string $server): static
+    public function setServer(string|ApplicationServerEnum $server): static
     {
-        $this->server = $server;
+        if ($server instanceof ApplicationServerEnum) {
+            $this->server = $server;
+
+            return $this;
+        }
+
+        $applicationServer = ApplicationServerEnum::tryFrom($server);
+
+        if ($applicationServer === null) {
+            $server = blank($server) ? "''" : $server;
+
+            throw new \Exception(
+                "$server is not a valid application server name. Please use one of these values: ".
+                ApplicationServerEnum::validValueList()
+            );
+        }
+
+        $this->server = $applicationServer;
 
         return $this;
     }
 
-    protected function isSwooleServerRunning(): bool
+    protected function isApplicationServerRunning(ApplicationServerEnum $applicationServer): bool
     {
-        return app(SwooleServerProcessInspector::class)
+        return app($applicationServer->processInspectorClassname())
             ->serverIsRunning();
-    }
-
-    /**
-     * Check if the RoadRunner server is running.
-     */
-    protected function isRoadRunnerServerRunning(): bool
-    {
-        return app(RoadRunnerServerProcessInspector::class)
-            ->serverIsRunning();
-    }
-
-    protected function invalidServer(Result $result, string $server): Result
-    {
-        return $result
-            ->failed('Octane server is not valid')
-            ->shortSummary('Not valid');
     }
 }
